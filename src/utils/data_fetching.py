@@ -16,6 +16,7 @@ def fetch_cif(pdb_id: str, root_dir="data") -> str:
     Raises:
         RuntimeError: If failed to get the response from the server.
     """
+    pdb_id = pdb_id.upper()
     dir_path = f"{root_dir}/{pdb_id}"
     file_path = f"{dir_path}/{pdb_id}.cif"
 

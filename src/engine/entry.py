@@ -5,8 +5,15 @@ if TYPE_CHECKING:
     from biotite.structure import AtomArray
 
 class Entry:
+    """Representation of the whole PDB entry. 
+
+    Attributes:
+        pdb_id (str): A unique PDB identifier.
+        atom_array (AtomArray): whole structure. 
+        ligands (list[Ligand]): all ligands found in the entry.
+    """
     def __init__(self, cif_file_path: str, pdb_id: str):
-        self.pdb_id = pdb_id
+        self.pdb_id = pdb_id.upper()
         self.atom_array = load_cif(cif_file_path)
         self.ligands = []
         
@@ -27,6 +34,14 @@ class Entry:
 
 
 class Ligand:
+    """Representation of the ligand molecule.
+
+    Attributes:
+        atom_array (AtomArray): structure of the ligand. 
+        identifiers (dict): PDB identifiers.
+        calculated_pockets (bool): True if pockets have been calculated.
+        pocket (Pocket): The associated binding pocket.
+    """
     def __init__(
         self,
         atom_array: AtomArray,
@@ -35,4 +50,8 @@ class Ligand:
         self.atom_array = atom_array
         self.identifiers = identifiers
         self.calculated_pockets = False
-        self.pockets = None
+        self.pocket = None
+
+#TODO: Implement Pocket class
+class Pocket:
+    pass
