@@ -14,23 +14,26 @@ class Entry:
     """
     def __init__(self, cif_file_path: str, pdb_id: str):
         self.pdb_id = pdb_id.upper()
-        self.atom_array = load_cif(cif_file_path)
+        self.atom_array, self.sequences = load_cif(cif_file_path)
         self.ligands = []
         
         ligand_list = extract_ligands(self.atom_array)
         for lig_arr, lig_ids in ligand_list:
             self.ligands.append(Ligand(lig_arr, lig_ids))
 
+    # TODO: will include pocket metadata in the future
     def extract_metadata(self) -> dict:
         """Extracts metadata from the entry.
 
         Returns:
             entry_metadata: Basic structural metadata and ligand identifiers.
         """
+        metadata = {}
         entry_metadata = extract_entry_metadata(self.atom_array)
         ligand_ids = [lig.identifiers for lig in self.ligands]
-        entry_metadata['ligand_identifiers'] = ligand_ids
-        return entry_metadata
+        metadata['entry'] = entry_metadata
+        metadata['ligands'] = ligand_ids
+        return metadata
 
 
 class Ligand:

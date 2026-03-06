@@ -3,7 +3,8 @@ import biotite.structure as struct
 from biotite.structure import AtomArray
 import biotite.structure.io.pdbx as pdbx
 
-def load_cif(file_path: str) -> AtomArray:
+#TODO: update docstring
+def load_cif(file_path: str) -> tuple[AtomArray, dict] :
     """Loads mmCIF file to an AtomArray object. 
 
     Args:
@@ -13,9 +14,10 @@ def load_cif(file_path: str) -> AtomArray:
         atom_arr: AtomArray ready for further processing.
     """
     cif_file = pdbx.CIFFile.read(file_path)
-    atom_arr = pdbx.get_structure(cif_file, model=1, extra_fields=['atom_id'])
-    atom_arr.bonds = struct.connect_via_residue_names(atom_arr)
-    return atom_arr
+    atom_array = pdbx.get_structure(cif_file, model=1, extra_fields=['atom_id'])
+    atom_array.bonds = struct.connect_via_residue_names(atom_array)
+    sequences = pdbx.get_sequence(cif_file)
+    return (atom_array, sequences)
 
 def extract_ligands(entry_arr: AtomArray) -> list[tuple[AtomArray, dict]]:
     """Extracts all ligands present in the entry, with their PDB identifiers.
@@ -54,8 +56,8 @@ def extract_ligands(entry_arr: AtomArray) -> list[tuple[AtomArray, dict]]:
         ligand_arr = ligand_atoms[mask],
         ligand_ids = {
             'comp_id': ids[0],
-            'auth_seq_id': ids[1],
-            'auth_asym_id': ids[2]
+            'res_id': ids[1],
+            'chain_id': ids[2]
         }
         ligands.append((ligand_arr, ligand_ids))
         
@@ -75,8 +77,6 @@ def extract_entry_metadata(entry_arr: AtomArray) -> dict:
     protein_atom_count = struct.filter_polymer(entry_arr, pol_type='peptide').sum()
     nuc_acid_atom_count = struct.filter_polymer(entry_arr, pol_type='nucleotide').sum()
     carb_atom_count = struct.filter_polymer(entry_arr, pol_type='carbohydrate').sum()
-    ion_atom_count = struct.filter_monoatomic_ions(entry_arr).sum()
-    solvent_atom_count = struct.filter_solvent(entry_arr).sum()
     chains = np.unique(struct.get_chains(entry_arr))
     residue_count = struct.get_residue_count(
             entry_arr[struct.filter_polymer(entry_arr)]
@@ -89,18 +89,16 @@ def extract_entry_metadata(entry_arr: AtomArray) -> dict:
     struct.filter_solvent(entry_arr)
     )
 
-    ligand_comp_ids = np.unique(entry_arr[~ligand_filter].res_name)
+    non_polymer_atom_count = entry_arr[~ligand_filter].array_length()
 
     return {
         'full_atom_count': full_atom_count,
         'protein_atom_count': protein_atom_count, 
         'nuc_acid_atom_count': nuc_acid_atom_count,
         'carb_atom_count': carb_atom_count,
-        'ion_atom_count': ion_atom_count,
-        'solvent_atom_count': solvent_atom_count,
+        'non_polymer_atom_count': non_polymer_atom_count,
         'chains': chains,
         'residue_count': residue_count,
-        'ligand_comp_ids': ligand_comp_ids
     }
 
 
