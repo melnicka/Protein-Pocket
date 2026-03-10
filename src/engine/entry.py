@@ -1,8 +1,6 @@
 from ..utils.cif_parsing import load_cif, extract_ligands, extract_entry_metadata
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from biotite.structure import AtomArray
+from biotite.structure import AtomArray
 
 class Entry:
     """Representation of the whole PDB entry. 
