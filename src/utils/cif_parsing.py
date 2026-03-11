@@ -51,14 +51,13 @@ def extract_ligands(entry_arr: AtomArray) -> list[tuple[AtomArray, dict]]:
                 (ligand_atoms.res_id == ids[1]) &
                 (ligand_atoms.chain_id == ids[2])
         )
-        ligand_arr = ligand_atoms[mask],
+        ligand_arr = ligand_atoms[mask]
         ligand_ids = {
             'comp_id': ids[0],
             'auth_seq_id': ids[1],
             'auth_asym_id': ids[2]
         }
         ligands.append((ligand_arr, ligand_ids))
-        
 
     return ligands
 
