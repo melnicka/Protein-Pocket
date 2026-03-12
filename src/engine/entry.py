@@ -33,11 +33,10 @@ class Entry:
         cell_list = CellList(self.atom_array, search_radius)
         pocket_idx = 0
         for ligand in self.ligands:
-            raw_indicies = cell_list.get_atoms(
-                    ligand.atom_array.coord,
-                    search_radius
-                )
-            indices = np.unique(raw_indicies[raw_indicies != -1])
+            ligand_coord = ligand.atom_array.coord
+            raw_indices = cell_list.get_atoms(ligand_coord, search_radius)
+            indices = np.unique(raw_indices[raw_indices != -1])
+
             residue_masks = get_residue_masks(self.atom_array, indices)
             combined_residue_mask = np.logical_or.reduce(residue_masks) 
             pocket_array = self.atom_array[combined_residue_mask]
@@ -45,7 +44,7 @@ class Entry:
                 pocket_array = pocket_array[~filter_solvent(pocket_array)]
             
             if len(pocket_array) == 0:
-                ligand.pocket == Pocket(None, None)
+                ligand.pocket = Pocket(None, None)
 
             else: 
                 pocket_array.bonds = connect_via_residue_names(pocket_array)
@@ -115,7 +114,7 @@ class Pocket:
             cif_file = CIFFile()
             set_structure(cif_file, atom_array)
             cif_file.write(cif_file_path)
-        
-        self.descritors = None
+
+        self.descriptors = None
 
         
