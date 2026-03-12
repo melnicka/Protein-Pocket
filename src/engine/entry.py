@@ -55,6 +55,10 @@ class Entry:
                 ligand.pocket = Pocket(pocket_array, pocket_cif_file_path)
 
             pocket_idx += 1
+
+    def save_pocket_cif_files(self):
+        for ligand in self.ligands:
+            ligand.pocket.save()
             
     def extract_metadata(self) -> dict:
         """Extracts metadata from the entry.
@@ -111,10 +115,14 @@ class Pocket:
         else:
             self.is_empty = False
             self.cif_file_path = cif_file_path 
-            cif_file = CIFFile()
-            set_structure(cif_file, atom_array)
-            cif_file.write(cif_file_path)
 
         self.descriptors = None
+
+    def save(self):
+        if self.cif_file_path is not None:
+            cif_file = CIFFile()
+            set_structure(cif_file, self.atom_array)
+            cif_file.write(self.cif_file_path)
+
 
         

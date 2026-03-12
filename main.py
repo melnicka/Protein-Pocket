@@ -6,6 +6,7 @@ if __name__ == '__main__':
     cif_path = fetch_cif("9QFX")
     entry = Entry(cif_path, "9QFX")
     entry.find_pockets()
+    entry.save_pocket_cif_files()
     metadata = entry.extract_metadata()
 
     for ligand in entry.ligands:
