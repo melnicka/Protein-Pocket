@@ -5,7 +5,6 @@ from biotite.structure.io.pdbx import CIFFile, set_structure
 from biotite.structure import AtomArray, CellList, get_residue_masks, filter_solvent, connect_via_residue_names
 from biotite.interface.rdkit import to_mol
 from rdkit.Chem.rdmolfiles import MolToSmiles
-# from rdkit.Chem.inchi import MolToInchi
 
 
 class Entry:
@@ -29,7 +28,16 @@ class Entry:
         for lig_arr, lig_ids in ligand_list:
             self.ligands.append(Ligand(lig_arr, lig_ids))
 
-    def find_pockets(self, search_radius=5.0, filter_out_solvent = True):
+    def find_pockets(self, search_radius: float = 5.0, filter_out_solvent: bool = True):
+        """Extracts pockets for all ligands. 
+
+        Here binding pocket is defined as all residues within cutoff distance 
+        from every ligand atom.
+
+        Args:
+            search_radius: The cutoff distance in Angstroms.
+            filter_out_solvent: Whether to filter out solvent molecules.
+        """
         cell_list = CellList(self.atom_array, search_radius)
         pocket_idx = 0
         for ligand in self.ligands:
@@ -57,6 +65,7 @@ class Entry:
             pocket_idx += 1
 
     def save_pocket_cif_files(self):
+        """Saves all pocket structures to mmCIF files."""
         for ligand in self.ligands:
             ligand.pocket.save()
             
@@ -77,13 +86,12 @@ class Ligand:
     """Representation of the ligand molecule.
 
     Attributes:
-        atom_array (AtomArray): structure of the ligand. 
+        atom_array (AtomArray): Structure of the ligand. 
         comp_id (str): A chemical compound ID.
         auth_seq_id (str): The residue ID.
         auth_asym_id (str): The chain ID.
         pocket (Pocket): The associated binding pocket.
         smiles (str): The canonical SMILES for the ligand.
-        inchi (str): The standard InChI for the ligand.
     """
     def __init__(
         self,
@@ -99,10 +107,17 @@ class Ligand:
 
         lig_mol = to_mol(atom_array)
         self.smiles = MolToSmiles(lig_mol)
-        # self.inchi = MolToInchi(lig_mol)
 
 
 class Pocket:
+    """Representation of the ligand binding pocket.
+
+    Attributes:
+        atom_array (AtomArray | None): Structure of the pocket, including the ligand. 
+        descriptors: (dict | None): Descriptors of the pocket.
+        is_empty (bool): True if atom array could not be extracted.
+        cif_file_path: Path to the saved pocket structure, ligand included.
+    """
     def __init__(
             self,
             atom_array: AtomArray | None,
@@ -119,6 +134,7 @@ class Pocket:
         self.descriptors = None
 
     def save(self):
+        """Saves pocket's structure to a mmCIF file."""
         if self.cif_file_path is not None:
             cif_file = CIFFile()
             set_structure(cif_file, self.atom_array)
