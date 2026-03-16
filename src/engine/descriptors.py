@@ -101,3 +101,48 @@ def calc_aromaticity(atom_array: struct.AtomArray) -> float:
     protein_seq = seq.ProteinSequence(residues)
     analysis = ProteinAnalysis("".join(protein_seq))
     return analysis.aromaticity()
+
+def calc_pocket_centroid(pocket_array: struct.AtomArray) -> tuple:
+    """Calculates the geometric center (centroid) of the pocket.
+    
+    Args:
+        pocket_array: Structure of the pocket.
+        
+    Returns:
+        tuple: coordinates of the centroid.
+    """
+    if len(pocket_array) == 0:
+        return 0.0, 0.0, 0.0
+    centroid_coords = struct.centroid(pocket_array)
+    
+    return float(centroid_coords[0]), float(centroid_coords[1]), float(centroid_coords[2])
+
+def calc_pocket_hydrophobicity(pocket_array: struct.AtomArray) -> float:
+    """Calculates the sum of hydrophobicity of the binding pocket 
+    using the Kyte-Doolittle scale.
+
+    Args:
+        pocket_array: Structure of the pocket (ligand included).
+
+    Returns:
+        float: Total hydrophobicity score.
+    """
+    if len(pocket_array) == 0:
+        return 0.0
+
+    kd_scale = {
+        'ALA': 1.8, 'ARG': -4.5, 'ASN': -3.5, 'ASP': -3.5,
+        'CYS': 2.5, 'GLN': -3.5, 'GLU': -3.5, 'GLY': -0.4,
+        'HIS': -3.2, 'ILE': 4.5, 'LEU': 3.8, 'LYS': -3.9,
+        'MET': 1.9, 'PHE': 2.8, 'PRO': -1.6, 'SER': -0.8,
+        'THR': -0.7, 'TRP': -0.9, 'TYR': -1.3, 'VAL': 4.2
+    }
+
+    protein_mask = struct.filter_amino_acids(pocket_array)
+    protein_pocket = pocket_array[protein_mask]
+
+    unique_residues = set(zip(protein_pocket.chain_id, protein_pocket.res_id, protein_pocket.res_name))
+
+    total_hydrophobicity = sum(kd_scale.get(res_name, 0.0) for _, _, res_name in unique_residues)
+
+    return float(total_hydrophobicity)
