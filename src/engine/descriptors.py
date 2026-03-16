@@ -77,3 +77,27 @@ def calc_instability_index(
     analysis = ProteinAnalysis("".join(protein_seq))
 
     return analysis.instability_index()
+
+
+'''opisuje jaki ułamek aminokwasów w białku jest aromatyczny.'''
+def calc_aromaticity(atom_array: struct.AtomArray) -> float:
+    residues = struct.get_residues(atom_array)[1]
+    protein_seq = seq.ProteinSequence(residues)
+    analysis = ProteinAnalysis("".join(protein_seq))
+    return analysis.aromaticity()
+
+
+'''mierzy udział helis w strukturze drugorzędowej białka.'''
+def calc_helix_fraction(atom_array: struct.AtomArray) -> float:
+    protein_atoms = atom_array[struct.filter_amino_acids(atom_array)]
+    sse_annotation = struct.annotate_sse(protein_atoms)
+    helix_fraction = np.sum(sse_annotation == "H") / len(sse_annotation)
+    return helix_fraction
+
+
+'''oblicza pH przy którym białko ma ładunek 0'''        
+def calc_aromaticity(atom_array: struct.AtomArray) -> float:
+    residues = struct.get_residues(atom_array)[1]
+    protein_seq = seq.ProteinSequence(residues)
+    analysis = ProteinAnalysis("".join(protein_seq))
+    return analysis.aromaticity()
