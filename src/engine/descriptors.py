@@ -103,14 +103,7 @@ def calc_aromaticity(atom_array: struct.AtomArray) -> float:
     return analysis.aromaticity()
 
 def calc_pocket_centroid(pocket_array: struct.AtomArray) -> tuple:
-    """Calculates the geometric center (centroid) of the pocket.
-    
-    Args:
-        pocket_array: Structure of the pocket.
-        
-    Returns:
-        tuple: coordinates of the centroid.
-    """
+    """Calculates the geometric center (centroid) of the pocket."""
     if len(pocket_array) == 0:
         return 0.0, 0.0, 0.0
     centroid_coords = struct.centroid(pocket_array)
@@ -119,14 +112,7 @@ def calc_pocket_centroid(pocket_array: struct.AtomArray) -> tuple:
 
 def calc_pocket_hydrophobicity(pocket_array: struct.AtomArray) -> float:
     """Calculates the sum of hydrophobicity of the binding pocket 
-    using the Kyte-Doolittle scale.
-
-    Args:
-        pocket_array: Structure of the pocket (ligand included).
-
-    Returns:
-        float: Total hydrophobicity score.
-    """
+    using the Kyte-Doolittle scale."""
     if len(pocket_array) == 0:
         return 0.0
 
