@@ -1,4 +1,7 @@
 import biotite.structure as struct 
+import biotite.sequence as seq
+import biotite.sequence.seqstats as seqstats
+import Bio.SeqUtils.ProtParam import ProteinAnalysis
 import numpy as np
 
 def calc_ligand_buried_surface(
@@ -48,4 +51,29 @@ def calc_gyration_radius(protein_array: struct.AtomArray) -> float:
         
         return gyration_radius
 
+'''
+Calculate the percentage occurrence of each amino acid in the protein sequence based on symbol frequency
+'''
+def calc_amino_acid_composition(
+        atom_array: struct.AtomArray
+    ) -> dict:
+    residues = struct.get_residues(atom_array)[1]
+    protein_seq = seq.ProteinSequence(residues)
+    freq = seqstats.get_symbol_frequency(residues)
+    percent = freq / len(protein_seq)*100
+    
+    return percent
 
+'''
+Calculate the instability index according to Guruprasad et al 1990.
+Any value above 40 means the protein is unstable (has a short half life).
+'''
+def calc_instability_index(
+        atom_array: struct.AtomArray
+    ) -> float:
+    residues = struct.get_residues(atom_array)[1]
+    protein_seq = seq.ProteinSequence(residues)
+
+    analysis = ProteinAnalysis("".join(protein_seq))
+
+    return analysis.instability_index()
