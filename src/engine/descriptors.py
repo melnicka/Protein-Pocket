@@ -96,11 +96,11 @@ def calc_helix_fraction(atom_array: struct.AtomArray) -> float:
 
 
 '''oblicza pH przy którym białko ma ładunek 0'''        
-def calc_aromaticity(atom_array: struct.AtomArray) -> float:
+def calc_isoelectric_point(atom_array: struct.AtomArray) -> float:
     residues = struct.get_residues(atom_array)[1]
     protein_seq = seq.ProteinSequence(residues)
     analysis = ProteinAnalysis("".join(protein_seq))
-    return analysis.aromaticity()
+    return analysis.isoelectric_point()
 
 def calc_pocket_centroid(pocket_array: struct.AtomArray) -> tuple:
     """Calculates the geometric center (centroid) of the pocket."""
