@@ -1,6 +1,6 @@
 import biotite.structure as struct 
 import biotite.sequence as seq
-import Bio.SeqUtils.ProtParam import ProteinAnalysis
+from Bio.SeqUtils.ProtParam import ProteinAnalysis
 import numpy as np
 
 def calc_ligand_buried_surface(
@@ -29,10 +29,10 @@ Measures how much of the protein's surface area is physically
 exposed to the surrounding solvent (usually water).
 """
 def calc_sasa_protein(structure: struct.AtomArray) -> float:
-        protein_mask = struc.filter_amino_acids(structure) #removing ligands, water molecules, etc.
+        protein_mask = struct.filter_amino_acids(structure) #removing ligands, water molecules, etc.
         protein_array = structure[protein_mask]
         
-        sasa_protein = struc.sasa(protein_array)
+        sasa_protein = struct.sasa(protein_array)
         total_sasa = np.nansum(sasa_protein) 
         
         return total_sasa
@@ -46,7 +46,7 @@ the protein's center of mass.
 - High Rg: The protein is extended, unfolded, or highly flexible
 """
 def calc_gyration_radius(protein_array: struct.AtomArray) -> float:
-        gyration_radius = struct.gyration_radius(protein_array, masses=none)
+        gyration_radius = struct.gyration_radius(protein_array, masses=None)
         
         return gyration_radius
 
