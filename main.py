@@ -1,5 +1,5 @@
-from engine.entry import Entry
-from utils.data_fetching import fetch_cif
+from src.engine.entry import Entry
+from src.utils.data_fetching import fetch_cif
 
 if __name__ == '__main__':
     cif_path = fetch_cif("4HHB")
