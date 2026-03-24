@@ -132,3 +132,18 @@ def calc_pocket_hydrophobicity(pocket_array: struct.AtomArray) -> float:
     total_hydrophobicity = sum(kd_scale.get(res_name, 0.0) for _, _, res_name in unique_residues)
 
     return float(total_hydrophobicity)
+
+
+
+def calc_dipole_moment(atom_array: struct.AtomArray):
+
+    # ladunki czastkowe, niektore atomy nie maja nw jakies bledy ...
+    charges = struct.partial_charges(atom_array)
+
+    centroid = np.sum([atom.coord for atom in atom_array]) / len(atom_array)
+    dipole_moment = centroid
+    for atom, charge in zip(atom_array, charges):
+        partial_moment = atom.coord * charge
+        dipole_moment += np.nan_to_num(partial_moment)
+
+    return dipole_moment
