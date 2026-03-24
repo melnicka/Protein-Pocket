@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from src.utils.cif_parsing import load_cif, extract_ligands, extract_entry_metadata
+from utils.cif_parsing import load_cif, extract_ligands, extract_entry_metadata
 from biotite.structure.io.pdbx import CIFFile, set_structure
 from biotite.structure import AtomArray, CellList, get_residue_masks, filter_solvent, connect_via_residue_names
 from biotite.interface.rdkit import to_mol
