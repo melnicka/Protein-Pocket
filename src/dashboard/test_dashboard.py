@@ -1,3 +1,4 @@
+from src.engine.entry import Entry
 from src.utils.data_fetching import fetch_cif
 import streamlit as st
 from deep_translator import GoogleTranslator
