@@ -163,3 +163,28 @@ def calc_hydrogen_bond_features(pocket_array: struct.AtomArray) -> dict:
     HBA = Lipinski.NumAcceptors(mol)
 
     return {"HBD": int(HBD), "HBA": int(HBA)}
+
+
+def calc_charged_surface_fraction(pocket_array: struct.AtomArray) -> float:
+    if len(pocket_array) == 0:
+        return 0.0
+    
+    charged_residues = {"ARG", "LYS", "HIS", "ASP", "GLU"}
+    sasa = struct.sasa(pocket_array)
+
+    amino_acid_mask = struct.filter_amino_acids(pocket_array)
+    amino_acid_atoms = pocket_array[amino_acid_mask]
+    amino_acid_sasa = sasa[amino_acid_mask]
+
+    if len(amino_acid_atoms) == 0:
+         return 0.0
+    
+    total_sasa = np.nansum(amino_acid_sasa)
+
+    charged_mask = np.isin(amino_acid_atoms.res_name, list(charged_residues))
+    charged_sasa = np.nansum(amino_acid_sasa[charged_mask])     
+    
+    if total_sasa == 0:
+         return 0.0
+    
+    return float(charged_sasa / total_sasa)
