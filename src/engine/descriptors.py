@@ -2,7 +2,8 @@ import biotite.structure as struct
 import biotite.sequence as seq
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 import numpy as np
-
+from rdkit import Chem
+from rdkit.Chem import Lipinski
 def calc_ligand_buried_surface(
         pocket_array: struct.AtomArray,
         ligand_array: struct.AtomArray
@@ -147,3 +148,18 @@ def calc_dipole_moment(atom_array: struct.AtomArray):
         dipole_moment += np.nan_to_num(partial_moment)
 
     return dipole_moment
+
+def calc_hydrogen_bond_features(pocket_array: struct.AtomArray) -> dict:
+    if len(pocket_array) == 0:
+            return {"HBA": 0, "HBD": 0}
+
+    pdb_block = struct.to_pdb(pocket_array)
+
+    mol = Chem.MolFromPDBBlock(pdb_block, sanitize=True)
+    if mol is None:
+                return {"HBA": 0, "HBD": 0}
+
+    HBD = Lipinski.NumDonors(mol)
+    HBA = Lipinski.NumAcceptors(mol)
+
+    return {"HBD": int(HBD), "HBA": int(HBA)}
