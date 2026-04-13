@@ -102,6 +102,35 @@ def extract_entry_metadata(entry_arr: AtomArray) -> dict:
         'ligand_comp_ids': ligand_comp_ids
     }
 
+def extract_metadata(pdb_string):
+    metadata = {
+        'resolution': 'N/A', 'organism': 'N/A', 'experiment': 'N/A', 'header': 'N/A', 'atoms': 0, 'chains': set()
+    }
+
+    for line in pdb_string.splitlines():
+        if line.startswith("HEADER"):
+            metadata["header"] = line[10:50].strip().lower()
+        elif line.startswith("EXPDTA"):
+            metadata["experiment"] = line[10:].strip()
+        elif line.startswith("REMARK   2") and "RESOLUTION." in line:
+            try:
+                parts = line.split()
+                idx = parts.index("RESOLUTION.") + 1
+                metadata["resolution"] = parts[idx] 
+            except:
+                pass
+        elif line.startswith("ATOM"):
+            metadata["atoms"] += 1
+            chain = line[21].strip()
+            if chain:
+                metadata["chains"].add(chain)
+        elif line.startswith("SOURCE") and "ORGANISM_SCIENTIFIC:" in line:
+            try:
+                metadata["organism"] = line.split("ORGANISM_SCIENTIFIC:")[1].split(";")[0].strip()
+            except:
+                pass
+
+    return metadata
 
 
 
