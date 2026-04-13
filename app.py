@@ -88,7 +88,7 @@ if pdb_id:
         st.sidebar.markdown("### 🎨 Chain colors")
         chain_colors = {}
         for chain in available_chains:
-            picked = st.sidebar.color_picker(f"Chain {chain} (Leave white for spectrum)", value="#FFFFFF")
+            picked = st.sidebar.color_picker(f"Chain {chain}", value="#FFFFFF")
             chain_colors[chain] = "spectrum" if picked.upper() == "#FFFFFF" else picked
 
         with st.sidebar:
