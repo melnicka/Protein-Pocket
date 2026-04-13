@@ -83,14 +83,13 @@ if pdb_id:
         # Sidebar Controls 
         available_chains = list(metadata['chains'])
         selected_chains = st.sidebar.multiselect("Visible chain(s)", available_chains, default=available_chains)
-        chain_colors = {chain: "spectrum" for chain in available_chains} 
         unique_ligand_ids = list(set([lig.comp_id for lig in entry.ligands]))
 
         st.sidebar.markdown("### 🎨 Chain colors")
         chain_colors = {}
         for chain in available_chains:
-            picked = st.sidebar.color_picker(f"{chain}", value="#FFFFFF")
-            chain_colors[chain] = None if picked.upper() == "#FFFFFF" else picked
+            picked = st.sidebar.color_picker(f"Chain {chain} (Leave white for spectrum)", value="#FFFFFF")
+            chain_colors[chain] = "spectrum" if picked.upper() == "#FFFFFF" else picked
 
         with st.sidebar:
             bg_color = st.selectbox("Background", options=["white", "black", "lightgray"], index=0)
