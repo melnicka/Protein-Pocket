@@ -4,10 +4,11 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 import numpy as np
 
 def _get_protein_analysis(atom_array: struc.AtomArray) -> ProteinAnalysis:
-"""Helper function to extract sequence and initialize Biopython's ProteinAnalysis."""
-        residues = struc.get_residues(atom_array)[1]
-        protein_seq = seq.ProteinSequence(residues)
-        return ProteinAnalysis(str(protein_seq))
+    """Helper function to extract sequence and initialize Biopython's ProteinAnalysis."""
+    protein_array = atom_array[struc.filter_amino_acids(atom_array)]  #<- dodalam filtrowanie, by ignorowalo 'smieci'~NB
+    residues = struc.get_residues(protein_array)[1]
+    protein_seq = seq.ProteinSequence(residues)
+    return ProteinAnalysis(str(protein_seq))
 
         
 def calc_ligand_buried_surface(
@@ -32,18 +33,18 @@ def calc_ligand_buried_surface(
         
 
 def calc_sasa_protein(structure: struc.AtomArray) -> float:
- """Solvent Accessible Surface Area (SASA):
+    """Solvent Accessible Surface Area (SASA):
 Measures how much of the protein's surface area is physically 
 exposed to the surrounding solvent (usually water).
 """
-        protein_mask = struc.filter_amino_acids(structure) #removing ligands, water molecules, etc.
-        protein_array = structure[protein_mask]
+    protein_mask = struc.filter_amino_acids(structure) #removing ligands, water molecules, etc.
+    protein_array = structure[protein_mask]
         
-        sasa_protein = struc.sasa(protein_array)
-        return float(np.nansum(sasa_protein))
+    sasa_protein = struc.sasa(protein_array, ignore_ions=True) #<- na wszelki wypadek dopisalam ignore~NB
+    return float(np.nansum(sasa_protein))
         
-def calc_gyration_radius(protein_array: struc.AtomArray) -> float:
-"""
+def calc_gyration_radius(atom_array: struc.AtomArray) -> float:
+    """
 Radius of Gyration (Rg):
 Measures the overall size and compactness of the protein structure.
 It calculates the mass-weighted average distance of all atoms from 
@@ -51,7 +52,8 @@ the protein's center of mass.
 - Low Rg: The protein is tightly folded and compact
 - High Rg: The protein is extended, unfolded, or highly flexible
 """
-         return struc.gyration_radius(protein_array, masses=None)
+    protein_array = atom_array[struc.filter_amino_acids(atom_array)]
+    return struc.gyration_radius(protein_array, masses=None)
 
 
 def calc_amino_acid_composition(atom_array: struc.AtomArray) -> dict:
@@ -68,7 +70,7 @@ def calc_instability_index(atom_array: struc.AtomArray) -> float:
     return analysis.instability_index()
 
 def calc_aromaticity(atom_array: struc.AtomArray) -> float:
-"""Calculates the fraction of aromatic amino acids in the protein."""
+    """Calculates the fraction of aromatic amino acids in the protein."""
     analysis = _get_protein_analysis(atom_array)
     return analysis.aromaticity()
 
@@ -80,15 +82,15 @@ def calc_helix_fraction(atom_array: struc.AtomArray) -> float:
     if len(sse_annotation) == 0:
         return 0.0
         
-    helix_fraction = np.sum(sse_annotation == "H") / len(sse_annotation)
+    helix_fraction = np.sum(sse_annotation == "a") / len(sse_annotation)   #tu chyba mialo byc a zamiast H?~NB
     return float(helix_fraction)
        
 def calc_isoelectric_point(atom_array: struc.AtomArray) -> float:
-'''oblicza pH przy którym białko ma ładunek 0''' 
-        analysis = _get_protein_analysis(atom_array)
-        return analysis.isoelectric_point()
+    '''oblicza pH przy którym białko ma ładunek 0''' 
+    analysis = _get_protein_analysis(atom_array)
+    return analysis.isoelectric_point()
 
-def calc_pocket_centroid(pocket_array: struct.AtomArray) -> tuple:
+def calc_pocket_centroid(pocket_array: struc.AtomArray) -> tuple:
     """Calculates the geometric center (centroid) of the pocket."""
     if len(pocket_array) == 0:
         return 0.0, 0.0, 0.0
@@ -96,7 +98,7 @@ def calc_pocket_centroid(pocket_array: struct.AtomArray) -> tuple:
     
     return float(centroid_coords[0]), float(centroid_coords[1]), float(centroid_coords[2])
 
-def calc_pocket_hydrophobicity(pocket_array: struct.AtomArray) -> float:
+def calc_pocket_hydrophobicity(pocket_array: struc.AtomArray) -> float:
     """Calculates the sum of hydrophobicity of the binding pocket using the Kyte-Doolittle scale."""
     if len(pocket_array) == 0:
         return 0.0
@@ -118,7 +120,7 @@ def calc_pocket_hydrophobicity(pocket_array: struct.AtomArray) -> float:
 
     return float(total_hydrophobicity)
 
-def calc_dipole_moment(atom_array: struct.AtomArray):
+def calc_dipole_moment(atom_array: struc.AtomArray):
 
     # ladunki czastkowe, niektore atomy nie maja nw jakies bledy ...
     charges = struc.partial_charges(atom_array)
@@ -128,5 +130,8 @@ def calc_dipole_moment(atom_array: struct.AtomArray):
     for atom, charge in zip(atom_array, charges):
         partial_moment = atom.coord * charge
         dipole_moment += np.nan_to_num(partial_moment)
+
+    return dipole_moment
+
 
     return dipole_moment
