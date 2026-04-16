@@ -47,33 +47,48 @@ if pdb_id:
             entry.find_pockets(search_radius=pocket_radius, filter_out_solvent=True)
             entry.save_pocket_cif_files()
             metadata = entry.extract_metadata()
- 
+            #dodalam - dla dashboarda i wyswietlanie typu bledu dla konsoli (ale w teorii powinno dzialac)~NB
             try: global_sasa = calc_sasa_protein(entry.atom_array)
-            except: global_sasa = None
+            except Exception as e:
+                print(f"[ERROR] SASA: {e}")
+                global_sasa = "—"
             
             try: rg = calc_gyration_radius(entry.atom_array)
-            except: rg = None
+            except Exception as e: 
+                print(f"[ERROR] Rg: {e}")
+                rg = "—"
             
             try: pi = calc_isoelectric_point(entry.atom_array)
-            except: pi = None
+            except Exception as e: 
+                print(f"[ERROR] pI: {e}")
+                pi = "—"
             
             try: instability = calc_instability_index(entry.atom_array)
-            except: instability = None
+            except Exception as e: 
+                print(f"[ERROR] Instability: {e}")
+                instability = "—"
             
             try: helix_frac = calc_helix_fraction(entry.atom_array)
-            except: helix_frac = None
+            except Exception as e: 
+                print(f"[ERROR] Helix fraction: {e}")
+                helix_frac = "—"
             
             try: aa_comp = calc_amino_acid_composition(entry.atom_array)
-            except: aa_comp = None
+            except Exception as e: 
+                print(f"[ERROR] aa composition: {e}")
+                aa_comp = "—"
 
             try: aromaticity = calc_aromaticity(entry.atom_array)
-            except: aromaticity = None
+            except Exception as e: 
+                print(f"[ERROR] Aromaticity: {e}")
+                aromaticity = "—"
 
             try: 
                 dipole_vec = calc_dipole_moment(entry.atom_array)
                 dipole_mag = np.linalg.norm(dipole_vec)
-            except: 
-                dipole_mag = None
+            except Exception as e:
+                print(f"[ERROR] Dipole moment: {e}") 
+                dipole_mag = "—"
 
         # 3. Fetch UniProt Data 
         with st.spinner("Fetching UniProt annotations..."):
