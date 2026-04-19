@@ -1,4 +1,6 @@
 import requests
+import streamlit as st
+
 def get_uniprot_accession(pdb_id):
     """
     Retrieves the UniProt accession number for a given PDB ID.
@@ -45,65 +47,20 @@ def get_protein_name_from_uniprot(accession, translate=False):
         response.raise_for_status()
         data = response.json()
         name = data.get("proteinDescription", {}).get("recommendedName", {}).get("fullName", {}).get("value", None)
-        if translate and name:
-            try:
-                name = GoogleTranslator(source='en', target='pl').translate(name)
-            except Exception as e:
-                print(f"Tłumaczenie nazwy białka nie powiodło się: {e}")
         return name
     except:
         pass
     return None
 
-def get_function_from_uniprot(accession, translate=False):
-    url = f"https://rest.uniprot.org/uniprotkb/{accession}.json"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
+def display_aa_seq(sequences: dict, chunk_size=60):
+    expander_label = "📄 View FASTA sequence"
 
-        descriptions = []
-        has_function = False
-        cofactor_names = set()
+    fasta_output = ""
 
-        for comment in data.get("comments", []):
-            if comment.get("commentType") == "FUNCTION":
-                texts = comment.get("texts", [])
-                if texts:
-                    raw_text = texts[0].get("value", "")
-                    cleaned_text = re.sub(r'\(PubMed:[^)]+\)', '', raw_text)
-                    descriptions.append(cleaned_text.strip())
-                    has_function = True
-            if comment.get("commentType") == "COFACTOR":
-                cofactors = comment.get("cofactors", [])
-                for cofactor in cofactors:
-                    name = cofactor.get("name")
-                    if name:
-                        cofactor_names.add(name)
+    for chain, seq in sequences.items():
+        fasta_output += f">Chain_{chain}\n"
+        for i in range(0, len(seq), chunk_size):
+            fasta_output += seq[i:i + chunk_size] + "\n"
 
-        # Dodajemy kofaktory jako osobne linie z myślnikiem
-        if cofactor_names:
-            descriptions.append(f"Kofaktory: {', '.join(sorted(cofactor_names))}")
-
-        # Dodajemy cechy jako osobne linie z myślnikiem, ale pomijamy 'Disordered'
-        for feature in data.get("features", []):
-            feature_type = feature.get("type", "").lower()
-            if feature_type in {"domain", "region", "motif"}:
-                desc = feature.get("description")
-                if desc != "Disordered":
-                    descriptions.append(f"Cecha: {desc}")
-
-        if not has_function:
-            descriptions.insert(0, "Ogólna funkcja nie została opisana w UniProt.")
-
-        full_description = "\n".join(descriptions) if descriptions else None
-        if translate and full_description:
-            try:
-                full_description = GoogleTranslator(source='en', target='pl').translate(full_description)
-            except Exception as e:
-                print(f"Tłumaczenie opisu funkcji nie powiodło się: {e}")
-
-        return full_description
-
-    except:
-        return None
+    with st.expander(expander_label):
+        st.code(fasta_output.strip(), language="fasta")
