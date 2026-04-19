@@ -7,6 +7,22 @@ import biotite.sequence as seq
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 import numpy as np
 
+def format_descriptor(value, unit="", decimals=2, is_percent=False):
+    """Formats values, adding units and handling missing data (None)."""
+    if value is None:
+        return "N/A"
+    
+    try:
+        val = float(value)
+        if is_percent:
+            return f"{(val * 100):.{decimals}f}%"
+        if unit:
+            return f"{val:.{decimals}f} {unit}"
+        
+        return f"{val:.{decimals}f}"
+    except (ValueError, TypeError):
+        return str(value)
+
 def _get_protein_analysis(atom_array: struc.AtomArray) -> ProteinAnalysis:
     """Helper function to extract sequence and initialize Biopython's ProteinAnalysis."""
     protein_array = atom_array[struc.filter_amino_acids(atom_array)]  #<- dodalam filtrowanie, by ignorowalo 'smieci'~NB
