@@ -6,7 +6,7 @@ import requests
 
 from src.utils.data_fetching import fetch_cif
 from src.utils.cif_parsing import extract_metadata
-from src.utils.fetch_uniprot import get_uniprot_accession, get_protein_name_from_uniprot, get_function_from_uniprot
+from src.utils.fetch_uniprot import get_uniprot_accession, get_protein_name_from_uniprot, display_aa_seq
 from src.engine.entry import Entry
 from src.engine.descriptors import (
     format_descriptor, calc_ligand_buried_surface, calc_sasa_protein, calc_gyration_radius,
@@ -15,7 +15,6 @@ from src.engine.descriptors import (
     calc_pocket_hydrophobicity, calc_dipole_moment, calc_hydrogen_bond_features, calc_charged_surface_fraction
 )
 from src.engine.protein_visualization import visualize_structure
-from src.utils.cif_parsing import extract_metadata
 
 st.set_page_config(page_title="Protein Viewer", layout="wide")
 st.title("🧬 3D Protein Viewer & Pocket Analysis")
@@ -38,8 +37,10 @@ if pdb_id:
             raw_pdb_string = pdb_response.text if pdb_response.status_code == 200 else None
             custom_metadata = {}
             if raw_pdb_string:
-                custom_metadata = extract_metadata(raw_pdb_string) 
+                custom_metadata = extract_metadata(raw_pdb_string)     
 
+            fasta_response = requests.get(f"https://www.rcsb.org/fasta/entry/{pdb_id}")
+            fasta_sequence = fasta_response.text if fasta_response.status_code == 200 else None
 
         #  2. Parse PDB Data and find pockets 
         with st.spinner("Analyzing structure and finding pockets..."):
@@ -47,6 +48,7 @@ if pdb_id:
             entry.find_pockets(search_radius=pocket_radius, filter_out_solvent=True)
             entry.save_pocket_cif_files()
             metadata = entry.extract_metadata()
+
             def safe_calc(func, *args):
                 try: 
                     return func(*args)
@@ -68,19 +70,17 @@ if pdb_id:
             except Exception as e:
                 print(f"[ERROR] Dipole moment: {e}") 
                 dipole_mag = None
-
-            try: global_sasa = calc_sasa_protein(entry.atom_array)
-            except Exception as e:
-                print(f"[ERROR] SASA: {e}")
-                global_sasa = None
-
+                
         # 3. Fetch UniProt Data 
         with st.spinner("Fetching UniProt annotations..."):
             accession = get_uniprot_accession(pdb_id)
             prot_name, prot_func = None, None
+            
+            if accession:
+                prot_name = get_protein_name_from_uniprot(accession)
 
         # Sidebar Controls 
-        available_chains = list(metadata['chains'])
+        available_chains = list(metadata.get('chains', []))
         selected_chains = st.sidebar.multiselect("Visible chain(s)", available_chains, default=available_chains)
         unique_ligand_ids = list(set([lig.comp_id for lig in entry.ligands]))
 
@@ -92,27 +92,50 @@ if pdb_id:
 
         with st.sidebar:
             bg_color = st.selectbox("Background", options=["white", "black", "lightgray"], index=0)
-            #pocket_radius = st.sidebar.slider("Pocket Search Radius (Å)", 3.0, 10.0, 5.0)
 
         col1, col2 = st.columns([1, 1])
 
         # Left Column: Metadata & Ligands
         with col1:
-            st.subheader(f"Structure information")
+            st.subheader("Structure information")
 
-            if custom_metadata:
-            
-                st.markdown(f"""
-                **Type:** {custom_metadata.get('header', 'N/A')}  \n
-                - **Resolution:** {custom_metadata.get('resolution', 'N/A')} Å \n
-                - **Experiment:** {custom_metadata.get('experiment', 'N/A')}  \n
-                - **Organism:** {custom_metadata.get('organism', 'N/A')}  \n
-                """)
-            
             if accession:
+                
+                if prot_name:
+                    st.write(f"**Protein Name:** {prot_name}")
+                
+                if custom_metadata:
+                    st.markdown(f"""
+                    **Type:** {custom_metadata.get('header', 'N/A')}  \n
+                    - **Resolution:** {custom_metadata.get('resolution', 'N/A')} Å \n
+                    - **Experiment:** {custom_metadata.get('experiment', 'N/A')}  \n
+                    - **Organism:** {custom_metadata.get('organism', 'N/A')}  \n
+                    """)
+
                 st.success(f"**UniProt Accession:** [{accession}](https://www.uniprot.org/uniprotkb/{accession}/entry)")
+
             else:
                 st.warning("No UniProt linkage found for this structure.")
+
+            
+            
+            if fasta_sequence:
+                sequences_dict = {}
+                current_header = ""
+                
+                for line in fasta_sequence.splitlines():
+                    if line.startswith(">"):
+                        parts = line.split("|")
+                        if len(parts) > 1:
+                            current_header = parts[1].replace("Chains", "").replace("Chain", "").strip()
+                        else:
+                            current_header = "Unknown"
+                        sequences_dict[current_header] = ""
+                    else:
+                        if current_header:
+                            sequences_dict[current_header] += line.strip()
+
+                display_aa_seq(sequences_dict)
             
             st.divider() 
 
@@ -124,6 +147,7 @@ if pdb_id:
             prop_col4.metric("Aromaticity", format_descriptor(aromaticity, decimals=1, is_percent=True))
             
             prop_col5, prop_col6, prop_col7, prop_col8 = st.columns(4)
+
             stability_status = "🔴" if (instability and instability > 40) else ("🟢" if instability else None)
             prop_col5.metric("Instability", format_descriptor(instability, decimals=1), delta=stability_status, delta_color="off")
             prop_col6.metric("Helix Frac.", format_descriptor(helix_frac, decimals=1, is_percent=True))
@@ -137,6 +161,7 @@ if pdb_id:
 
             st.divider()
 
+            st.subheader("Ligands & Binding Pockets")
             if hasattr(entry, 'ligands') and len(entry.ligands) > 0:
                 for lig in entry.ligands:
                     with st.expander(f"Ligand {lig.comp_id} (Chain {lig.auth_asym_id}, Seq {lig.auth_seq_id})"):
@@ -167,7 +192,7 @@ if pdb_id:
             st.subheader("3D Structure Viewer")
             
             view_options = ["Whole Protein"]
-            pocket_ligands = [lig for lig in entry.ligands if not lig.pocket.is_empty]
+            pocket_ligands = [lig for lig in getattr(entry, 'ligands', []) if hasattr(lig, 'pocket') and not lig.pocket.is_empty]
             for lig in pocket_ligands:
                 view_options.append(f"Pocket: {lig.comp_id} ({lig.auth_asym_id}:{lig.auth_seq_id})")
                 
