@@ -9,10 +9,10 @@ from src.utils.cif_parsing import extract_metadata
 from src.utils.fetch_uniprot import get_uniprot_accession, get_protein_name_from_uniprot, get_function_from_uniprot
 from src.engine.entry import Entry
 from src.engine.descriptors import (
-    calc_ligand_buried_surface, calc_sasa_protein, calc_gyration_radius,
+    format_descriptor, calc_ligand_buried_surface, calc_sasa_protein, calc_gyration_radius,
     calc_amino_acid_composition, calc_instability_index, calc_aromaticity,
     calc_helix_fraction, calc_isoelectric_point, calc_pocket_centroid,
-    calc_pocket_hydrophobicity, calc_dipole_moment
+    calc_pocket_hydrophobicity, calc_dipole_moment, calc_hydrogen_bond_features, calc_charged_surface_fraction
 )
 from src.engine.protein_visualization import visualize_structure
 from src.utils.cif_parsing import extract_metadata
@@ -47,48 +47,32 @@ if pdb_id:
             entry.find_pockets(search_radius=pocket_radius, filter_out_solvent=True)
             entry.save_pocket_cif_files()
             metadata = entry.extract_metadata()
-            #dodalam - dla dashboarda i wyswietlanie typu bledu dla konsoli (ale w teorii powinno dzialac)~NB
-            try: global_sasa = calc_sasa_protein(entry.atom_array)
-            except Exception as e:
-                print(f"[ERROR] SASA: {e}")
-                global_sasa = "—"
-            
-            try: rg = calc_gyration_radius(entry.atom_array)
-            except Exception as e: 
-                print(f"[ERROR] Rg: {e}")
-                rg = "—"
-            
-            try: pi = calc_isoelectric_point(entry.atom_array)
-            except Exception as e: 
-                print(f"[ERROR] pI: {e}")
-                pi = "—"
-            
-            try: instability = calc_instability_index(entry.atom_array)
-            except Exception as e: 
-                print(f"[ERROR] Instability: {e}")
-                instability = "—"
-            
-            try: helix_frac = calc_helix_fraction(entry.atom_array)
-            except Exception as e: 
-                print(f"[ERROR] Helix fraction: {e}")
-                helix_frac = "—"
-            
-            try: aa_comp = calc_amino_acid_composition(entry.atom_array)
-            except Exception as e: 
-                print(f"[ERROR] aa composition: {e}")
-                aa_comp = "—"
+            def safe_calc(func, *args):
+                try: 
+                    return func(*args)
+                except Exception as e:
+                    print(f"[ERROR] {func.__name__}: {e}")
+                    return None
 
-            try: aromaticity = calc_aromaticity(entry.atom_array)
-            except Exception as e: 
-                print(f"[ERROR] Aromaticity: {e}")
-                aromaticity = "—"
+            global_sasa = safe_calc(calc_sasa_protein, entry.atom_array)
+            rg = safe_calc(calc_gyration_radius, entry.atom_array)
+            pi = safe_calc(calc_isoelectric_point, entry.atom_array)
+            instability = safe_calc(calc_instability_index, entry.atom_array)
+            helix_frac = safe_calc(calc_helix_fraction, entry.atom_array)
+            aa_comp = safe_calc(calc_amino_acid_composition, entry.atom_array)
+            aromaticity = safe_calc(calc_aromaticity, entry.atom_array)
 
             try: 
                 dipole_vec = calc_dipole_moment(entry.atom_array)
-                dipole_mag = np.linalg.norm(dipole_vec)
+                dipole_mag = np.linalg.norm(dipole_vec) if dipole_vec is not None else None
             except Exception as e:
                 print(f"[ERROR] Dipole moment: {e}") 
-                dipole_mag = "—"
+                dipole_mag = None
+
+            try: global_sasa = calc_sasa_protein(entry.atom_array)
+            except Exception as e:
+                print(f"[ERROR] SASA: {e}")
+                global_sasa = None
 
         # 3. Fetch UniProt Data 
         with st.spinner("Fetching UniProt annotations..."):
@@ -134,24 +118,17 @@ if pdb_id:
 
             st.write("**Whole Protein Properties:**")
             prop_col1, prop_col2, prop_col3, prop_col4 = st.columns(4)
-            if global_sasa is not None:
-                prop_col1.metric("Total SASA", f"{float(global_sasa):.0f} Å²")
-            if rg is not None: 
-                prop_col2.metric("Gyration Rad.", f"{float(rg):.2f} Å")
-            if pi is not None: 
-                prop_col3.metric("pI", f"{float(pi):.2f}")
-            if aromaticity is not None: 
-                prop_col4.metric("Aromaticity", f"{(float(aromaticity)*100):.1f}%")
+            prop_col1.metric("Total SASA", format_descriptor(global_sasa, unit="Å²", decimals=0))
+            prop_col2.metric("Gyration Rad.", format_descriptor(rg, unit="Å", decimals=2))
+            prop_col3.metric("pI", format_descriptor(pi, decimals=2))
+            prop_col4.metric("Aromaticity", format_descriptor(aromaticity, decimals=1, is_percent=True))
             
             prop_col5, prop_col6, prop_col7, prop_col8 = st.columns(4)
-            if instability is not None: 
-                stability_status = "🔴" if instability > 40 else "🟢"
-                prop_col5.metric("Instability", f"{float(instability):.1f}", delta=stability_status, delta_color="off")
-            if helix_frac is not None:
-                prop_col6.metric("Helix Frac.", f"{(float(helix_frac)*100):.1f}%")
-            prop_col7.metric("Total Atoms", metadata['full_atom_count'])
-            if dipole_mag is not None:
-                prop_col8.metric("Dipole Moment", f"{float(dipole_mag):.1f}")
+            stability_status = "🔴" if (instability and instability > 40) else ("🟢" if instability else None)
+            prop_col5.metric("Instability", format_descriptor(instability, decimals=1), delta=stability_status, delta_color="off")
+            prop_col6.metric("Helix Frac.", format_descriptor(helix_frac, decimals=1, is_percent=True))
+            prop_col7.metric("Total Atoms", metadata.get('full_atom_count', 'N/A'))
+            prop_col8.metric("Dipole Moment", format_descriptor(dipole_mag, decimals=1))
             
             if aa_comp:
                 with st.expander("Amino Acid Composition (%)"):
@@ -160,23 +137,30 @@ if pdb_id:
 
             st.divider()
 
-            st.subheader("Ligands & Binding Pockets")
-            if len(entry.ligands) > 0:
+            if hasattr(entry, 'ligands') and len(entry.ligands) > 0:
                 for lig in entry.ligands:
                     with st.expander(f"Ligand {lig.comp_id} (Chain {lig.auth_asym_id}, Seq {lig.auth_seq_id})"):
-                        st.write(f"**SMILES:** `{lig.smiles}`")
-                        if not lig.pocket.is_empty:
+                        st.write(f"**SMILES:** `{getattr(lig, 'smiles', 'N/A')}`") 
+            
+                        if hasattr(lig, 'pocket') and not lig.pocket.is_empty:
                             try:
                                 buried_surf = calc_ligand_buried_surface(lig.pocket.atom_array, lig.atom_array)
                                 hydrophobicity = calc_pocket_hydrophobicity(lig.pocket.atom_array)
+                                hbond_features = calc_hydrogen_bond_features(lig.pocket.atom_array)
+                                charged_frac = calc_charged_surface_fraction(lig.pocket.atom_array)
+                
                                 st.write(f"- **Buried Surface:** {buried_surf:.2f} Å²")
                                 st.write(f"- **KD Hydrophobicity:** {hydrophobicity:.2f}")
+                                st.write(f"- **H-Bond Donors:** {hbond_features.get('HBD', 'N/A')}")
+                                st.write(f"- **H-Bond Acceptors:** {hbond_features.get('HBA', 'N/A')}")
+                                st.write(f"- **Charged Surface:** {(charged_frac * 100):.1f}%")
+                    
                             except Exception as e:
                                 st.warning(f"Could not calculate pocket descriptors: {e}")
                         else:
                             st.warning("No pocket residues found.")
             else:
-                st.write("No ligands found.")
+                st.info("No ligands or pockets detected in this structure.")
 
         # Right Column: Native 3D Viewer
         with col2:
