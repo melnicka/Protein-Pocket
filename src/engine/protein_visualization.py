@@ -1,8 +1,8 @@
 import py3Dmol
 import streamlit as st
 
-def visualize_structure(cif_data, style="cartoon", bg_color="white", 
-                        show_ss=True, chain_colors=None, selected_chains=None,
+def visualize_structure(cif_data, style="cartoon", color_scheme="spectrum", bg_color="white", 
+                        show_ss=False, chain_colors=None, selected_chains=None,
                         show_ligands=True, ligand_colors=None,
                         active_site_residues=None, active_site_color="magenta",
                         is_pocket_view=False):
@@ -11,6 +11,16 @@ def visualize_structure(cif_data, style="cartoon", bg_color="white",
     view.addModel(cif_data, "cif")
     view.setBackgroundColor(bg_color)
 
+    def get_color(scheme):
+            if scheme == "chain":
+                return {"colorscheme": "chain"}
+            elif scheme == "residue":
+                return {"colorscheme": "amino"}
+            else:
+                return {"color": "spectrum"}
+
+    color_spec = get_color(color_scheme)
+
     if not is_pocket_view:
         if selected_chains is not None and chain_colors is not None:
             # Color selected chains; fade out the rest
@@ -18,15 +28,26 @@ def visualize_structure(cif_data, style="cartoon", bg_color="white",
             for chain in all_chains:
                 if chain in selected_chains:
                     color = chain_colors.get(chain, "spectrum")
-                    view.setStyle({'chain': chain}, {style: {'color': color}})
+                    current_color_spec = color_spec if color == "spectrum" else {'color': color}
+                    if style == "surface":
+                        view.setStyle({'chain': chain}, {})
+                        view.addSurface(py3Dmol.VDW, current_color_spec, {'chain': chain})
+                    else:
+                        view.setStyle({'chain': chain}, {style: current_color_spec})
                 else:
                     view.setStyle({'chain': chain}, {'cartoon': {'color': 'gray', 'opacity': 0.2}})
         else:
-            # Default spectrum view
-            view.setStyle({style: {'color': 'spectrum'}})
+            if style == "surface":
+                view.setStyle({})
+                view.addSurface(py3Dmol.VDW, color_spec)
+            else:
+                view.setStyle({style: color_spec})
     else:
-        # POCKET VIEW: Stick representation for the local environment
-        view.setStyle({'stick': {'colorscheme': 'grayCarbon'}})
+        if style == "surface":
+            view.setStyle({})
+            view.addSurface(py3Dmol.VDW, color_spec)
+        else:
+            view.setStyle({style: color_spec})
 
     # 2. Secondary Structure Highlights (Helices = Red, Sheets = Yellow)
     if show_ss is True and not is_pocket_view:
