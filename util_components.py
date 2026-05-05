@@ -217,7 +217,9 @@ def structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors):
         selected_chains=selected_chains,
         chain_colors=chain_colors,
         active_site_residues=active_sites,
-        is_pocket_view=is_pocket
+        is_pocket_view=is_pocket,
+        style=style_option,
+        color_scheme=color_option
     )
 
     components.html(view._make_html(), height=600, width=600)
