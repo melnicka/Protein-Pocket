@@ -52,10 +52,12 @@ if __name__ == "__main__":
             chain_colors[chain] = "spectrum" if picked.upper() == "#FFFFFF" else picked
 
         with st.sidebar:
+            style_option = st.radio("Visualization Style", ["cartoon", "stick", "surface", "sphere", "line"])
+            color_option = st.radio("Color Scheme", ["spectrum", "chain", "residue"])
             bg_color = st.selectbox("Background", options=["white", "black", "lightgray"], index=0)
 
         with col2:
             st.subheader("3D Structure Viewer")
-            structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors)
+            structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors, style_option, color_option)
     else:
         st.info("Please enter a PDB ID to get started.")
