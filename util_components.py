@@ -189,7 +189,7 @@ def protein_details(pdb_id, entry):
         st.error(f"An error occurred: {e}")
 
 
-def structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors):
+def structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors, style_option, color_option):
     view_options = ["Whole Protein"]
     pocket_ligands = [lig for lig in getattr(entry, 'ligands', []) if hasattr(lig, 'pocket') and not lig.pocket.is_empty]
     for lig in pocket_ligands:
