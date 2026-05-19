@@ -51,21 +51,18 @@ def extract_protein_name(cif_path: str) -> str:
         return str(title)
     except Exception:
         return "unknown protein"
-
-
-def fetch_protein_papers(protein_name: str,max_results: int = 5) -> list[list[str]]:
+def fetch_protein_papers(protein_name: str, max_results: int = 5) -> list[list[str]]:
     """
-    Fetch scientific papers related to a protein.
-    Returns:[[paper_link, short_abstract],...]
+    Fetch top PubMed papers (more relevant + widely used results).
+    Returns:
+        [[link, abstract], ...]
     """
-    search_term = protein_name.split("STRUCTURE OF")[-1]
-    search_term = search_term.strip()
+    search_term = protein_name.split("STRUCTURE OF")[-1].strip()
     search_handle = Entrez.esearch(
         db="pubmed",
         term=search_term,
-        retmax=max_results,
-        sort="relevance"
-    )
+        retmax=20,         
+        sort="relevance")
     search_results = Entrez.read(search_handle)
     search_handle.close()
     paper_ids = search_results["IdList"]
@@ -77,20 +74,18 @@ def fetch_protein_papers(protein_name: str,max_results: int = 5) -> list[list[st
         rettype="medline",
         retmode="text"
     )
-    records = Medline.parse(fetch_handle)
+    records = list(Medline.parse(fetch_handle))
+    fetch_handle.close()
     papers = []
     for record in records:
         pmid = record.get("PMID", "")
-        abstract = record.get(
-            "AB",
-            "No abstract available."
-        )
-        short_abstract = abstract[:300] + "..."
-        link = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+        title = record.get("TI", "")
+        abstract = record.get("AB", "No abstract available.")
+        if not pmid:
+            continue
         papers.append([
-            link,
-            short_abstract
+            f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+            f"{title}\n\n{abstract[:250]}..."
         ])
-    fetch_handle.close()
-    return papers
+    return papers[:max_results]
 
