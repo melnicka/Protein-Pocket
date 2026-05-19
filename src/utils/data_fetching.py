@@ -43,22 +43,18 @@ def fetch_cif(pdb_id: str, root_dir="data") -> str:
 
     return file_path
     
-def extract_protein_name(cif_path: str, pdb_id: str = None) -> str:
+def extract_protein_name(cif_path: str, pdb_id: str) -> str:
     """
-    #to narazie niedziała i dokońca niewiem jak narazie wyciągnąc nazwe białka z tych danych 
+    #to niedziała narazie ( potrzebuje jakoś wyextractować nazwe białka )
     """
     try:
-        cif = CIFFile.read(cif_path)
-        block = list(cif.values())[0]
-        title = block.get("_struct.title")
-        if title is not None:
-            return str(title.as_item())
-        entity = block.get("_entity_poly.pdbx_strand_id")
-        if entity is not None:
-            return f"Protein {entity.as_item()}"
+        url = f"https://data.rcsb.org/rest/v1/core/entry/{pdb_id}"
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["struct"]["title"]
     except Exception:
-        pass
-    return pdb_id if pdb_id else "unknown protein"
+        return pdb_id
 
 #ta część działa 
 def fetch_protein_papers(protein_name: str, max_results: int = 5) -> list[list[str]]:
