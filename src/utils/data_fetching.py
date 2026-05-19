@@ -40,17 +40,22 @@ def fetch_cif(pdb_id: str, root_dir="data") -> str:
 
     return file_path
     
-def extract_protein_name(cif_path: str) -> str:
+def extract_protein_name(cif_path: str, pdb_id: str = None) -> str:
     """
-    Extract protein title/name from mmCIF file.
+    Robust protein name extraction from CIF with fallback.
     """
     try:
         cif = CIFFile.read(cif_path)
         block = list(cif.values())[0]
-        title = block["_struct.title"].as_item()
-        return str(title)
+        title = block.get("_struct.title")
+        if title is not None:
+            return str(title.as_item())
+        entity = block.get("_entity_poly.pdbx_strand_id")
+        if entity is not None:
+            return f"Protein {entity.as_item()}"
     except Exception:
-        return "unknown protein"
+        pass
+    return pdb_id if pdb_id else "unknown protein"
 def fetch_protein_papers(protein_name: str, max_results: int = 5) -> list[list[str]]:
     """
     Fetch top PubMed papers (more relevant + widely used results).
