@@ -9,7 +9,7 @@ if __name__ == '__main__':
     metadata = entry.extract_metadata()
     # TEST PUBMED
     protein_name = extract_protein_name(cif_path)
-    papers = fetch_protein_papers(protein_name)
+    papers = fetch_protein_papers("Human Deoxyhaemoglobin")
     print(" PROTEIN NAME")
     print(protein_name)
     print(" PAPERS ")
