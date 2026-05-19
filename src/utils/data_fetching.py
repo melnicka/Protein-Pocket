@@ -59,6 +59,8 @@ def extract_protein_name(cif_path: str, pdb_id: str = None) -> str:
     except Exception:
         pass
     return pdb_id if pdb_id else "unknown protein"
+
+#ta część działa 
 def fetch_protein_papers(protein_name: str, max_results: int = 5) -> list[list[str]]:
     """
     Improved PubMed fetch with better query + safety.
