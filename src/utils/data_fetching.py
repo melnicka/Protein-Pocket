@@ -1,5 +1,8 @@
 import requests
 import os
+from Bio import Entrez
+from Bio import Medline
+from biotite.structure.io.pdbx import CIFFile
 
 def fetch_cif(pdb_id: str, root_dir="data") -> str:
     """Downloads protein's 3D structure file in CIF format from RCSB PDB.
@@ -36,3 +39,58 @@ def fetch_cif(pdb_id: str, root_dir="data") -> str:
         f.write(resp.content)
 
     return file_path
+    
+def extract_protein_name(cif_path: str) -> str:
+    """
+    Extract protein title/name from mmCIF file.
+    """
+    try:
+        cif = CIFFile.read(cif_path)
+        block = list(cif.values())[0]
+        title = block["_struct.title"].as_item()
+        return str(title)
+    except Exception:
+        return "unknown protein"
+
+
+def fetch_protein_papers(protein_name: str,max_results: int = 5) -> list[list[str]]:
+    """
+    Fetch scientific papers related to a protein.
+    Returns:[[paper_link, short_abstract],...]
+    """
+    search_term = protein_name.split("STRUCTURE OF")[-1]
+    search_term = search_term.strip()
+    search_handle = Entrez.esearch(
+        db="pubmed",
+        term=search_term,
+        retmax=max_results,
+        sort="relevance"
+    )
+    search_results = Entrez.read(search_handle)
+    search_handle.close()
+    paper_ids = search_results["IdList"]
+    if not paper_ids:
+        return []
+    fetch_handle = Entrez.efetch(
+        db="pubmed",
+        id=",".join(paper_ids),
+        rettype="medline",
+        retmode="text"
+    )
+    records = Medline.parse(fetch_handle)
+    papers = []
+    for record in records:
+        pmid = record.get("PMID", "")
+        abstract = record.get(
+            "AB",
+            "No abstract available."
+        )
+        short_abstract = abstract[:300] + "..."
+        link = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+        papers.append([
+            link,
+            short_abstract
+        ])
+    fetch_handle.close()
+    return papers
+
