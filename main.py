@@ -1,5 +1,5 @@
 from src.engine.entry import Entry
-from src.utils.data_fetching import fetch_cif
+from src.utils.data_fetching import fetch_cif, extract_protein_name, fetch_protein_papers
 
 if __name__ == '__main__':
     cif_path = fetch_cif("4HHB")
@@ -7,5 +7,15 @@ if __name__ == '__main__':
     entry.find_pockets()
     # entry.save_pocket_cif_files()
     metadata = entry.extract_metadata()
+    # TEST PUBMED
+    protein_name = extract_protein_name(cif_path)
+    papers = fetch_protein_papers(protein_name)
+    print(" PROTEIN NAME")
+    print(protein_name)
+    print(" PAPERS ")
+    for link, abstract in papers:
+        print(link)
+        print(abstract)
+        print("-" * 80)
 
 
