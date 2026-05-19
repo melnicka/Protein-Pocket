@@ -4,6 +4,9 @@ from Bio import Entrez
 from Bio import Medline
 from biotite.structure.io.pdbx import CIFFile
 
+
+# przydało by dać email ( lepsze rezultaty czy cus ) 
+#Entrez.email = "test@example.com"
 def fetch_cif(pdb_id: str, root_dir="data") -> str:
     """Downloads protein's 3D structure file in CIF format from RCSB PDB.
     Creates a unique directory for protein's data.
@@ -58,39 +61,43 @@ def extract_protein_name(cif_path: str, pdb_id: str = None) -> str:
     return pdb_id if pdb_id else "unknown protein"
 def fetch_protein_papers(protein_name: str, max_results: int = 5) -> list[list[str]]:
     """
-    Fetch top PubMed papers (more relevant + widely used results).
-    Returns:
-        [[link, abstract], ...]
+    Improved PubMed fetch with better query + safety.
     """
-    search_term = protein_name.split("STRUCTURE OF")[-1].strip()
-    search_handle = Entrez.esearch(
-        db="pubmed",
-        term=search_term,
-        retmax=20,         
-        sort="relevance")
-    search_results = Entrez.read(search_handle)
-    search_handle.close()
-    paper_ids = search_results["IdList"]
-    if not paper_ids:
-        return []
-    fetch_handle = Entrez.efetch(
-        db="pubmed",
-        id=",".join(paper_ids),
-        rettype="medline",
-        retmode="text"
-    )
-    records = list(Medline.parse(fetch_handle))
-    fetch_handle.close()
-    papers = []
-    for record in records:
-        pmid = record.get("PMID", "")
-        title = record.get("TI", "")
-        abstract = record.get("AB", "No abstract available.")
-        if not pmid:
-            continue
-        papers.append([
-            f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
-            f"{title}\n\n{abstract[:250]}..."
-        ])
-    return papers[:max_results]
+    clean_name = protein_name.replace("STRUCTURE OF", "").strip()
+    search_term = f"{clean_name} protein structure"
 
+    try:
+        search_handle = Entrez.esearch(
+            db="pubmed",
+            term=search_term,
+            retmax=20,
+            sort="relevance"
+        )
+        search_results = Entrez.read(search_handle)
+        search_handle.close()
+        paper_ids = search_results.get("IdList", [])
+        if not paper_ids:
+            return []
+        fetch_handle = Entrez.efetch(
+            db="pubmed",
+            id=",".join(paper_ids),
+            rettype="medline",
+            retmode="text"
+        )
+        records = list(Medline.parse(fetch_handle))
+        fetch_handle.close()
+        papers = []
+        for record in records:
+            pmid = record.get("PMID")
+            title = record.get("TI") or "No title"
+            abstract = record.get("AB") or "No abstract available."
+            if not pmid:
+                continue
+            papers.append([
+                f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+                f"{title}\n\n{abstract[:250]}..."
+            ])
+        return papers[:max_results]
+    except Exception as e:
+        print(f"PubMed error: {e}")
+        return []
