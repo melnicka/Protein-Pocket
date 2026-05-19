@@ -59,7 +59,7 @@ def extract_protein_name(cif_path: str, pdb_id: str) -> str:
 #ta część działa 
 def fetch_protein_papers(protein_name: str, max_results: int = 5) -> list[list[str]]:
     """
-    Improved PubMed fetch with better query + safety.
+     PubMed fetch , papers of protean based on their name 
     """
     clean_name = protein_name.replace("STRUCTURE OF", "").strip()
     search_term = f"{clean_name} protein structure"
