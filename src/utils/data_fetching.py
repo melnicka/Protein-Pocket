@@ -45,7 +45,7 @@ def fetch_cif(pdb_id: str, root_dir="data") -> str:
     
 def extract_protein_name(cif_path: str, pdb_id: str = None) -> str:
     """
-    Robust protein name extraction from CIF with fallback.
+    #to narazie niedziała i dokońca niewiem jak narazie wyciągnąc nazwe białka z tych danych 
     """
     try:
         cif = CIFFile.read(cif_path)
