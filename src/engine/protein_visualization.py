@@ -71,4 +71,11 @@ def visualize_structure(cif_data, style="cartoon", color_scheme="spectrum", bg_c
                            'sphere': {'color': active_site_color, 'radius': 0.8}})
 
     view.zoomTo()
+<<<<<<< Updated upstream
+=======
+
+    view.setHoverable({}, True,
+        "function(at,v){if(!at.lab){at.lab=v.addLabel(at.resn+at.resi,{position:at,backgroundColor:'mintcream',fontColor:'black'})}}",
+        "function(at,v){if(at.lab){v.removeLabel(at.lab);delete at.lab}}")
+>>>>>>> Stashed changes
     return view
