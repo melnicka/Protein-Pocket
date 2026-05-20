@@ -1,5 +1,12 @@
 import requests
 import os
+from Bio import Entrez
+from Bio import Medline
+from biotite.structure.io.pdbx import CIFFile
+
+
+# przydało by dać email ( lepsze rezultaty czy cus ) 
+#Entrez.email = "test@example.com"
 
 def fetch_cif(pdb_id: str, root_dir="data") -> str:
     """Downloads protein's 3D structure file in CIF format from RCSB PDB.
