@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import requests
 
-from util_components import pocket_radius, protein_details, structure_viewer
+from util_components import pocket_radius, protein_details, structure_viewer, llm_implementation
 from src.utils.data_fetching import fetch_cif
 from src.utils.cif_parsing import extract_metadata
 from src.utils.fetch_uniprot import get_similar_proteins, get_uniprot_accession, get_protein_name_from_uniprot, display_aa_seq
@@ -18,7 +18,7 @@ from src.engine.descriptors import (
 from src.engine.protein_visualization import visualize_structure
 
 if __name__ == "__main__":
-    # main page
+    # Main page configuration
     st.set_page_config(page_title="Protein Viewer", layout="wide")
     st.title("🧬 3D Protein Viewer & Pocket Analysis")
 
@@ -29,7 +29,6 @@ if __name__ == "__main__":
     ).strip().upper()
 
     if pdb_id:
-
         cif_path = fetch_cif(pdb_id)
         entry = Entry(cif_path, pdb_id)
         entry.find_pockets(search_radius=pocket_radius, filter_out_solvent=True)
@@ -37,8 +36,9 @@ if __name__ == "__main__":
         metadata = entry.extract_metadata()
 
         col1, col2 = st.columns([1, 1])
+            
         with col1:
-            protein_details(pdb_id, entry)
+            extracted_data = protein_details(pdb_id, entry)
 
         # Sidebar Controls
         available_chains = list(metadata.get('chains', []))
@@ -59,5 +59,9 @@ if __name__ == "__main__":
         with col2:
             st.subheader("3D Structure Viewer")
             structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors, style_option, color_option)
+
+        if not extracted_data:
+            st.warning("Could not load protein details to feed to the AI.")
+
     else:
         st.info("Please enter a PDB ID to get started.")
