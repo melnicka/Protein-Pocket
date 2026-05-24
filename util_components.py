@@ -3,6 +3,7 @@ import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 import requests
+from huggingface_hub import InferenceClient
 
 from src.utils.data_fetching import fetch_cif
 from src.utils.cif_parsing import extract_metadata
@@ -16,7 +17,11 @@ from src.engine.descriptors import (
 )
 from src.engine.protein_visualization import visualize_structure
 
+
 pocket_radius = 5.0
+
+hf_client = InferenceClient(api_key=st.secrets["HF_TOKEN"])
+HF_MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct"
 
 def protein_details(pdb_id, entry):
     metadata = entry.extract_metadata()
@@ -73,14 +78,10 @@ def protein_details(pdb_id, entry):
             if accession:
                 similar_proteins = get_similar_proteins(accession, level=50)
 
-
-
-
         # Left Column: Metadata & Ligands
         st.subheader("Structure information")
 
         if accession:
-
             if prot_name:
                 st.write(f"**Protein Name:** {prot_name}")
 
@@ -93,11 +94,8 @@ def protein_details(pdb_id, entry):
                 """)
 
             st.success(f"**UniProt Accession:** [{accession}](https://www.uniprot.org/uniprotkb/{accession}/entry)")
-
         else:
             st.warning("No UniProt linkage found for this structure.")
-
-
 
         if fasta_sequence:
             sequences_dict = {}
@@ -185,6 +183,38 @@ def protein_details(pdb_id, entry):
         else:
             st.info("No similar proteins with PDB entries found")
 
+        # ✅ FIXED: Explicitly executing the LLM interface block inside the dashboard workflow
+        st.divider()
+        st.subheader("🤖 AI Structure Assistant")
+        
+        safe_metadata = custom_metadata if custom_metadata else {}
+        safe_name = prot_name if prot_name else "Unknown Protein"
+        
+        try:
+            llm_implementation(
+                pdb_id=pdb_id,
+                entry=entry,
+                custom_metadata=safe_metadata,
+                prot_name=safe_name,
+                global_sasa=global_sasa,
+                rg=rg,
+                pi=pi,
+                instability=instability,
+                helix_frac=helix_frac
+            )
+        except Exception as llm_err:
+            st.error(f"Could not load protein details to feed to the AI: {llm_err}")
+
+        return {
+            "prot_name": safe_name,
+            "custom_metadata": safe_metadata, 
+            "global_sasa": global_sasa,
+            "rg": rg,
+            "pi": pi,
+            "instability": instability,
+            "helix_frac": helix_frac
+        }
+
     except Exception as e:
         st.error(f"An error occurred: {e}")
 
@@ -223,3 +253,116 @@ def structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors, s
     )
 
     components.html(view._make_html(), height=600, width=600)
+
+def llm_implementation(pdb_id, entry, custom_metadata, prot_name, global_sasa, rg, pi, instability, helix_frac):
+
+    try:
+        avg_b_factor = np.mean(entry.atom_array.b_factor)
+    except Exception:
+        avg_b_factor = None
+
+    protein_summary = f"""
+    Protein: {pdb_id}
+    Name: {prot_name}
+    Resolution: {custom_metadata.get('resolution', 'N/A')} Å
+    SASA: {f"{global_sasa:.2f} Å²" if global_sasa is not None else 'N/A'}
+    Gyration Radius: {f"{rg:.2f} Å" if rg is not None else 'N/A'}
+    Instability Index: {f"{instability:.1f} ({'Stable' if instability < 40 else 'Unstable'})" if instability is not None else 'N/A'}
+    Helix Content: {f"{helix_frac:.1f}%" if helix_frac is not None else 'N/A'}
+    Isoelectric Point: {f"{pi:.2f}" if pi is not None else 'N/A'}
+    B-factor avg: {f"{avg_b_factor:.2f}" if avg_b_factor is not None else 'N/A'}
+    Ligands found: {len(entry.ligands) if hasattr(entry, 'ligands') else 0}
+    """
+    
+    chat_key = f"hf_chat_{pdb_id}"
+    
+    if chat_key not in st.session_state:
+        system_instruction = f"""
+        You are an expert computational biologist. You are analyzing the following protein data:
+        {protein_summary}
+        
+        Answer all user questions based strictly on this data and standard biochemical principles. 
+        Keep your answers concise, scientifically accurate, and format them clearly with markdown.
+        """
+        st.session_state[chat_key] = [
+            {"role": "system", "content": system_instruction}
+        ]
+
+    chat_history = st.session_state[chat_key]
+    
+    with st.container():
+        for message in chat_history:
+            if message["role"] == "system":
+                continue
+
+            if message["role"] == "user" and "Analyze this protein structure data" in message["content"]:
+                continue 
+                
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
+    if len(chat_history) == 1:
+
+        if st.button("✨ Generate Initial Structure Insights", key=f"btn_generate_{pdb_id}"):
+            with st.spinner("AI is analyzing your protein..."):
+                try:
+                    prompt = """Analyze this protein structure data and provide:
+                    1. 2-3 key structural features
+                    2. Implications for protein function/stability
+                    3. Notable characteristics compared to typical proteins
+                    """
+                    chat_history.append({"role": "user", "content": prompt})
+                    
+                    response = hf_client.chat.completions.create(
+                        model=HF_MODEL_ID,
+                        messages=chat_history,
+                        max_tokens=500
+                    )
+                    reply = response.choices[0].message.content
+                    
+                    chat_history.append({"role": "assistant", "content": reply})
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to generate insights: {e}")
+
+    if prompt := st.chat_input(f"Ask a follow-up question about {pdb_id}...", key=f"chat_input_{pdb_id}"):
+        with st.chat_message("user"):
+            st.markdown(prompt)
+            
+        chat_history.append({"role": "user", "content": prompt})
+            
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                try:
+                    response = hf_client.chat.completions.create(
+                        model=HF_MODEL_ID,
+                        messages=chat_history,
+                        max_tokens=500
+                    )
+                    reply = response.choices[0].message.content
+                    
+                    st.markdown(reply)
+                    chat_history.append({"role": "assistant", "content": reply})
+                except Exception as e:
+                    st.error(f"Error communicating with Hugging Face API: {e}")
+
+    if len(chat_history) > 1:
+        st.divider()
+        chat_text = f"--- Structure Analysis for {pdb_id} ---\n\n"
+        for message in chat_history:
+            if message["role"] == "system":
+                continue
+                
+            role = "Assistant" if message["role"] == "assistant" else "User"
+            if role == "User" and "Analyze this protein structure data" in message["content"]:
+                continue
+                
+            chat_text += f"**{role}:**\n{message['content']}\n\n"
+        
+        st.download_button(
+            label="📥 Download Chat History",
+            data=chat_text,
+            file_name=f"{pdb_id}_analysis.txt",
+            mime="text/plain",
+            key=f"dl_button_{pdb_id}" 
+        )
