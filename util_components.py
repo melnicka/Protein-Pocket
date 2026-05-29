@@ -16,7 +16,7 @@ from src.engine.descriptors import (
     calc_pocket_hydrophobicity, calc_dipole_moment, calc_hydrogen_bond_features, calc_charged_surface_fraction
 )
 from src.engine.protein_visualization import visualize_structure
-
+from src.utils.fetch_pathways import get_pathways
 
 pocket_radius = 5.0
 
@@ -164,6 +164,20 @@ def protein_details(pdb_id, entry):
                         st.warning("No pocket residues found.")
         else:
             st.info("No ligands or pockets detected in this structure.")
+
+        st.divider()
+
+        st.subheader("Metabolic Pathways")
+        pathways = get_pathways(pdb_id)
+        if pathways:
+            for pathway in pathways:
+                st.link_button(
+                    pathway["name"],
+                    pathway["url"]
+                )
+
+        else:
+            st.info("No KEGG pathway data found.")
 
         st.divider()
 
