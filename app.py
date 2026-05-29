@@ -16,6 +16,7 @@ from src.engine.descriptors import (
     calc_pocket_hydrophobicity, calc_dipole_moment, calc_hydrogen_bond_features, calc_charged_surface_fraction
 )
 from src.engine.protein_visualization import visualize_structure
+from src.utils.fetch_pathways import get_pathways
 
 if __name__ == "__main__":
     # Main page configuration
