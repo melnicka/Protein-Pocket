@@ -1,6 +1,6 @@
 import requests
 import streamlit as st
-
+from src.utils.data_fetching import fetch_protein_papers
 
 def get_uniprot_accession(pdb_id):
     """
@@ -113,3 +113,14 @@ def display_aa_seq(sequences: dict, chunk_size=60):
 
     with st.expander(expander_label):
         st.code(fasta_output.strip(), language="fasta")
+
+
+def get_papers_from_accession(accession: str):
+    from src.utils.data_fetching import fetch_protein_papers 
+
+    protein_name = get_protein_name_from_uniprot(accession)
+
+    if not protein_name:
+        return []
+
+    return fetch_protein_papers(protein_name)
