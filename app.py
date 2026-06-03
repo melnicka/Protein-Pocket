@@ -7,7 +7,7 @@ import requests
 from util_components import pocket_radius, protein_details, structure_viewer, llm_implementation
 from src.utils.data_fetching import fetch_cif
 from src.utils.cif_parsing import extract_metadata
-from src.utils.fetch_uniprot import get_similar_proteins, get_uniprot_accession, get_protein_name_from_uniprot, display_aa_seq
+from src.utils.fetch_uniprot import get_similar_proteins, get_uniprot_accession, get_protein_name_from_uniprot, display_aa_seq, get_papers_from_accession
 from src.engine.entry import Entry
 from src.engine.descriptors import (
     format_descriptor, calc_ligand_buried_surface, calc_sasa_protein, calc_gyration_radius,
@@ -60,6 +60,22 @@ if __name__ == "__main__":
         with col2:
             st.subheader("3D Structure Viewer")
             structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors, style_option, color_option)
+            accession = get_uniprot_accession(pdb_id)
+            if accession:
+                papers = get_papers_from_accession(accession)
+                if papers:
+                    st.subheader("📚 PubMed Papers")
+                    with st.container(height=450):
+                        for p in papers:
+                            st.markdown(f"### {p['title']}")
+                            st.markdown(f"**Summary:** {p['summary']}")
+                            st.link_button("Open PubMed", p["url"])
+                            st.divider()
+
+                else:
+                    st.info("No PubMed articles found.")
+            else:
+                st.info("No UniProt accession found for this PDB ID.")
 
         if not extracted_data:
             st.warning("Could not load protein details to feed to the AI.")
