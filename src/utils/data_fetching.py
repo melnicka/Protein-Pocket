@@ -46,10 +46,7 @@ def fetch_cif(pdb_id: str, root_dir="data") -> str:
 
 
 
-def fetch_protein_papers(protein_name: str, max_results: int = 20) -> list[list[str]]:
-    """
-    it gives few best searches from pubmed based on the name of the protean  ( just give the name of the protean into this function ) 
-    """
+def fetch_protein_papers(protein_name: str, max_results: int = 20) -> list[dict]:
     clean_name = protein_name.replace("STRUCTURE OF", "").strip()
     search_term = f"{clean_name} protein structure"
 
@@ -57,34 +54,44 @@ def fetch_protein_papers(protein_name: str, max_results: int = 20) -> list[list[
         search_handle = Entrez.esearch(
             db="pubmed",
             term=search_term,
-            retmax=20,
+            retmax=max_results,
             sort="relevance"
         )
         search_results = Entrez.read(search_handle)
         search_handle.close()
+
         paper_ids = search_results.get("IdList", [])
         if not paper_ids:
             return []
+
         fetch_handle = Entrez.efetch(
             db="pubmed",
             id=",".join(paper_ids),
             rettype="medline",
             retmode="text"
         )
+
         records = list(Medline.parse(fetch_handle))
         fetch_handle.close()
+
         papers = []
         for record in records:
             pmid = record.get("PMID")
             title = record.get("TI") or "No title"
             abstract = record.get("AB") or "No abstract available."
+
             if not pmid:
                 continue
-            papers.append([
-                f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
-                f"{title}\n\n{abstract[:250]}..."
-            ])
-        return papers[:max_results]
+
+            papers.append({
+                "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+                "title": title,
+                "summary": abstract[:250] + "..."
+            })
+
+        return papers
+
     except Exception as e:
         print(f"PubMed error: {e}")
         return []
+
