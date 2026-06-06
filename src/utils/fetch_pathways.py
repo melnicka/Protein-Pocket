@@ -2,8 +2,11 @@ import requests
 from src.utils.fetch_uniprot import get_uniprot_accession
 
 
-def get_pathways(pdb_id):
-    uniprot_id = get_uniprot_accession(pdb_id)
+def get_pathways(id, is_uniprot=False):
+    if is_uniprot:
+        uniprot_id = id
+    else:
+        uniprot_id = get_uniprot_accession(id)
     if not uniprot_id:
         return []
     uni_url = f"https://rest.uniprot.org/uniprotkb/{uniprot_id}.json"
