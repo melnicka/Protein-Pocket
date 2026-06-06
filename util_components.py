@@ -380,3 +380,19 @@ def llm_implementation(pdb_id, entry, custom_metadata, prot_name, global_sasa, r
             mime="text/plain",
             key=f"dl_button_{pdb_id}" 
         )
+
+def show_plddt_legend():
+    legend_items = [
+        ("#0053D6", "Very high (pLDDT > 90)"),
+        ("#65CBF3", "Confident (90 > pLDDT > 70)"),
+        ("#FFDB13", "Low (70 > pLDDT > 50)"),
+        ("#FF7045", "Very low (pLDDT < 50)")
+    ]
+
+    rows_html = ""
+    for color, text in legend_items:
+        rows_html += f'<div style="display: flex; align-items: center; gap: 12px;"><div style="width: 22px; height: 22px; background-color: {color}; border-radius: 4px;"></div><span style="color: #d8dee9; font-weight: 500; font-size: 14px;">{text}</span></div>'
+        
+    final_html = f'<div style="display: flex; flex-direction: column; gap: 8px; background-color: #11151c; padding: 14px; border-radius: 8px; border: 1px solid #2e3440;">{rows_html}</div>'
+    
+    st.markdown(final_html, unsafe_allow_html=True)
