@@ -26,7 +26,7 @@ if __name__ == "__main__":
     st.sidebar.header("Search & Settings")
     pdb_id = st.text_input(
         "Enter PDB ID:",
-        "1J91"
+        "6H5G"
     ).strip().upper()
 
     if pdb_id:
