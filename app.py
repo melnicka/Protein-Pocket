@@ -30,7 +30,12 @@ if __name__ == "__main__":
     ).strip().upper()
 
     if pdb_id:
-        cif_path = fetch_cif(pdb_id)
+        try:
+            cif_path = fetch_cif(pdb_id)
+        except RuntimeError:
+            st.error(f" **Invalid PDB ID:** Could not find or download data for `{pdb_id}`. Please check the ID and try again.")
+            st.stop() 
+
         entry = Entry(cif_path, pdb_id)
         entry.find_pockets(search_radius=pocket_radius, filter_out_solvent=True)
         entry.save_pocket_cif_files()
