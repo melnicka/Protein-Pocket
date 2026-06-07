@@ -197,7 +197,6 @@ def protein_details(pdb_id, entry):
         else:
             st.info("No similar proteins with PDB entries found")
 
-        # ✅ FIXED: Explicitly executing the LLM interface block inside the dashboard workflow
         st.divider()
         st.subheader("🤖 AI Structure Assistant")
         
@@ -276,15 +275,15 @@ def llm_implementation(pdb_id, entry, custom_metadata, prot_name, global_sasa, r
         avg_b_factor = None
 
     protein_summary = f"""
-    Protein: {pdb_id}
+    Protein ID: {pdb_id}
     Name: {prot_name}
     Resolution: {custom_metadata.get('resolution', 'N/A')} Å
     SASA: {f"{global_sasa:.2f} Å²" if global_sasa is not None else 'N/A'}
-    Gyration Radius: {f"{rg:.2f} Å" if rg is not None else 'N/A'}
+    Radius of Gyration (Rg): {f"{rg:.2f} Å" if rg is not None else 'N/A'}
     Instability Index: {f"{instability:.1f} ({'Stable' if instability < 40 else 'Unstable'})" if instability is not None else 'N/A'}
-    Helix Content: {f"{helix_frac:.1f}%" if helix_frac is not None else 'N/A'}
-    Isoelectric Point: {f"{pi:.2f}" if pi is not None else 'N/A'}
-    B-factor avg: {f"{avg_b_factor:.2f}" if avg_b_factor is not None else 'N/A'}
+    Helix Fraction: {f"{helix_frac:.1f}" if helix_frac is not None else 'N/A'}
+    Isoelectric Point (pI): {f"{pi:.2f}" if pi is not None else 'N/A'}
+    Average B-factor: {f"{avg_b_factor:.2f}" if avg_b_factor is not None else 'N/A'}
     Ligands found: {len(entry.ligands) if hasattr(entry, 'ligands') else 0}
     """
     
@@ -292,14 +291,24 @@ def llm_implementation(pdb_id, entry, custom_metadata, prot_name, global_sasa, r
     
     if chat_key not in st.session_state:
         system_instruction = f"""
-        You are an expert computational biologist. You are analyzing the following protein data:
-        {protein_summary}
-        
-        Answer all user questions based strictly on this data and standard biochemical principles. 
-        Keep your answers concise, scientifically accurate, and format them clearly with markdown.
-        """
+You are an expert Structural Bioinformatician and Computational Biologist. 
+Your primary task is to answer the user's questions based strictly on the protein data provided below.
+
+<protein_data>
+{protein_summary}
+</protein_data>
+
+### Instructions:
+1. **Grounding:** Base all specific facts, numbers, and structural details strictly on the `<protein_data>` provided. 
+2. **Handling Missing Data:** If a metric is listed as 'N/A', or if the user asks for data not included in the summary, explicitly state that the information is unavailable. Do NOT hallucinate, guess, or estimate missing values.
+3. **Scientific Interpretation:** Use your general biochemical knowledge to interpret the provided data. For example, if the user asks, explain what a specific Isoelectric Point, SASA, or Instability Index implies about the protein's behavior, stability, or experimental handling.
+4. **Formatting:** You are interacting via a Streamlit chat interface. Format your responses beautifully using Markdown. Use **bolding** for metrics/keywords, bullet points for readability, and keep paragraphs concise.
+5. **Tone:** Maintain an objective, highly scientific, and helpful tone.
+
+Do not introduce yourself in every message. Jump straight into answering the prompt.
+"""
         st.session_state[chat_key] = [
-            {"role": "system", "content": system_instruction}
+            {"role": "system", "content": system_instruction.strip()}
         ]
 
     chat_history = st.session_state[chat_key]
