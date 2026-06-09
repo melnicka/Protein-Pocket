@@ -46,7 +46,7 @@ def fetch_cif(pdb_id: str, root_dir="data") -> str:
 
 
 
-def fetch_protein_papers(protein_name: str, max_results: int = 20) -> list[dict]:
+def fetch_protein_papers(protein_name: str, max_results: int = 5) -> list[dict]:
     clean_name = protein_name.replace("STRUCTURE OF", "").strip()
     search_term = f"{clean_name} protein structure"
 
