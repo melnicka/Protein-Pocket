@@ -22,6 +22,8 @@ else:
     col1, col2 = st.columns(2)
 
     with st.sidebar:
+        style_option = st.radio("Visualization Style", ["cartoon", "stick", "surface", "sphere", "line"])
+        color_option = st.radio("Color Scheme", ["spectrum", "chain", "residue"])
         bg_color = st.selectbox("Background", options=["white", "black", "lightgray"], index=0)
 
     with col1:
@@ -40,7 +42,7 @@ else:
             picked = st.sidebar.color_picker(f"Chain {chain}", value="#FFFFFF", key=f"colapicka1_{chain}")
             chain_colors[chain] = "spectrum" if picked.upper() == "#FFFFFF" else picked
 
-        structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors)
+        structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors, style_option, color_option)
         protein_details(pdb1, entry)
 
     with col2:
@@ -59,5 +61,5 @@ else:
             picked = st.sidebar.color_picker(f"Chain {chain}", value="#FFFFFF", key=f"colapicka2_{chain}")
             chain_colors[chain] = "spectrum" if picked.upper() == "#FFFFFF" else picked
 
-        structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors)
+        structure_viewer(entry, cif_path, bg_color, selected_chains, chain_colors, style_option, color_option)
         protein_details(pdb2, entry)
